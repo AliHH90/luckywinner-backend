@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,7 +35,7 @@ public class AdminCompetitionController {
         this.adminCompetitionService = adminCompetitionService;
     }
 
-    // POST /api/admin/competitions
+    // ایجاد مسابقه
     @PostMapping
     public ResponseEntity<CompetitionResponse> createCompetition(
             @RequestBody AdminCreateCompetitionRequest request) {
@@ -43,14 +44,14 @@ public class AdminCompetitionController {
         return ResponseEntity.ok(response);
     }
 
-    // GET /api/admin/competitions
+    // لیست مسابقات
     @GetMapping
     public ResponseEntity<List<CompetitionResponse>> getAll() {
         List<CompetitionResponse> list = adminCompetitionService.getAllCompetitions();
         return ResponseEntity.ok(list);
     }
 
-    // PUT /api/admin/competitions/{id}/correct-code
+    // تنظیم کد صحیح
     @PutMapping("/{id}/correct-code")
     public ResponseEntity<Void> setCorrectCode(@PathVariable Long id,
                                                @RequestBody AdminSetCodeRequest request) {
@@ -58,7 +59,7 @@ public class AdminCompetitionController {
         return ResponseEntity.ok().build();
     }
 
-    // PUT /api/admin/competitions/{id}/status
+    // تغییر وضعیت مسابقه
     @PutMapping("/{id}/status")
     public ResponseEntity<Void> updateStatus(@PathVariable Long id,
                                              @RequestBody AdminUpdateStatusRequest request) {
@@ -66,25 +67,39 @@ public class AdminCompetitionController {
         return ResponseEntity.ok().build();
     }
 
-    // GET /api/admin/competitions/{id}/participants
+    // گرفتن لیست شرکت‌کنندگان
     @GetMapping("/{id}/participants")
     public ResponseEntity<List<ParticipantResponse>> getParticipants(@PathVariable Long id) {
         List<ParticipantResponse> list = adminCompetitionService.getParticipants(id);
         return ResponseEntity.ok(list);
     }
 
-    // GET /api/admin/competitions/{id}/question
+    // گرفتن سوال مسابقه
     @GetMapping("/{id}/question")
     public ResponseEntity<QuestionResponse> getQuestion(@PathVariable Long id) {
         QuestionResponse response = adminCompetitionService.getQuestion(id);
         return ResponseEntity.ok(response);
     }
 
-    // PUT /api/admin/competitions/{id}/question
+    // ذخیره/ویرایش سوال مسابقه
     @PutMapping("/{id}/question")
     public ResponseEntity<QuestionResponse> saveQuestion(@PathVariable Long id,
                                                          @RequestBody AdminQuestionRequest request) {
         QuestionResponse response = adminCompetitionService.saveQuestion(id, request);
         return ResponseEntity.ok(response);
+    }
+
+    // حذف فقط سوال‌های مسابقه
+    @DeleteMapping("/{id}/question")
+    public ResponseEntity<Void> deleteQuestion(@PathVariable Long id) {
+        adminCompetitionService.deleteQuestion(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // حذف کامل مسابقه + سوال + مشارکت‌ها
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCompetition(@PathVariable Long id) {
+        adminCompetitionService.deleteCompetition(id);
+        return ResponseEntity.noContent().build();
     }
 }

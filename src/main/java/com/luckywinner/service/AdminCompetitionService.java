@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.luckywinner.dto.AdminCreateCompetitionRequest;
 import com.luckywinner.dto.AdminQuestionRequest;
@@ -80,6 +81,28 @@ public class AdminCompetitionService {
                 saved.getStatus()
         );
     }
+    
+    @Transactional
+    public void deleteQuestion(Long competitionId) {
+        // اگر خواستی مطمئن شوی مسابقه وجود دارد:
+        // competitionRepository.findById(competitionId)
+        //        .orElseThrow(() -> new RuntimeException("Competition not found"));
+
+        // همه سؤال‌های مربوط به این مسابقه (در عمل معمولاً یک سؤال) حذف می‌شود
+        questionRepository.deleteByCompetitionId(competitionId);
+    }
+    
+ // حذف کامل مسابقه + سوال‌ها + مشارکت‌ها
+    @Transactional
+    public void deleteCompetition(Long competitionId) {
+        // اول مشارکت‌ها
+        participationRepository.deleteByCompetitionId(competitionId);
+        // بعد سوال‌ها
+        questionRepository.deleteByCompetitionId(competitionId);
+        // آخر خود مسابقه
+        competitionRepository.deleteById(competitionId);
+    }
+
 
     // ---------- لیست مسابقات ----------
     public List<CompetitionResponse> getAllCompetitions() {

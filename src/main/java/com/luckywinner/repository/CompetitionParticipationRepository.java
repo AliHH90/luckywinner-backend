@@ -17,7 +17,8 @@ public interface CompetitionParticipationRepository extends JpaRepository<Compet
 
     List<CompetitionParticipation> findTop20ByWinnerTrueOrderByEnterTimeDesc();
     
-
+    void deleteByCompetitionId(Long competitionId);
+    
     // آیا کاربر برای این مسابقه قبلاً شرکت کرده است؟
     boolean existsByUserAndCompetition(User user, Competition competition);
 

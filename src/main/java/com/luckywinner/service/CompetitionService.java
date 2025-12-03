@@ -69,6 +69,17 @@ public class CompetitionService {
                 .findFirstByStatusOrderByStartTimeDesc("RUNNING")
                 .orElseThrow(() -> new RuntimeException("No running competition"));
     }
+    
+ // ماسک کردن شماره تلفن: فقط 4 رقم آخر را نشان می‌دهیم
+    private String maskPhone(String phone) {
+        if (phone == null || phone.length() < 4) {
+            return "********";
+        }
+        String last4 = phone.substring(phone.length() - 4);
+        return "********" + last4;
+    }
+
+
 
     public CompetitionResponse getCurrentCompetition() {
         Competition c = getCurrentRunningCompetition();
@@ -186,6 +197,7 @@ public class CompetitionService {
     */
 
     // --------- API: وارد کردن کد درست و برنده شدن (فعال می‌ماند) ---------
+ // وارد کردن کد صحیح مسابقه
     public CodeEntryResponse enterCorrectCode(String code) {
         if (code == null || code.trim().isEmpty()) {
             return new CodeEntryResponse(false, "کد نمی‌تواند خالی باشد.");
@@ -196,7 +208,7 @@ public class CompetitionService {
         Competition competition = getCurrentRunningCompetition();
         User user = getCurrentUser();
 
-        // باید برای این رقابت قبلاً پاسخ سوال را درست داده باشد
+        // پیدا کردن participation فعلی برای این مسابقه
         CompetitionParticipation participation =
                 participationRepository
                         .findByCompetitionIdAndUserId(competition.getId(), user.getId())
@@ -206,7 +218,6 @@ public class CompetitionService {
             return new CodeEntryResponse(false, "شما هنوز سوال را درست جواب نداده‌اید.");
         }
 
-        // باید correctCode برای مسابقه تنظیم شده باشد
         String correctCode = competition.getCorrectCode();
         if (correctCode == null || correctCode.isBlank()) {
             return new CodeEntryResponse(false, "کد صحیح برای این رقابت هنوز تنظیم نشده است.");
@@ -226,15 +237,29 @@ public class CompetitionService {
                         .orElse(null);
 
         if (existingWinner != null) {
-            if (existingWinner.getUser().getId().equals(user.getId())) {
-                return new CodeEntryResponse(true, "شما قبلاً برنده این رقابت شده‌اید. تبریک!");
-            } else {
-                return new CodeEntryResponse(false, "متاسفانه برنده این رقابت قبلاً مشخص شده است.");
+            // یعنی یکی قبلاً برنده شده
+            User winnerUser = existingWinner.getUser();
+
+            CodeEntryResponse resp = new CodeEntryResponse(
+                    false,
+                    "متاسفانه برنده این رقابت قبلاً مشخص شده است."
+            );
+
+            // اطلاعات برنده را هم برگردانیم
+            resp.setWinnerName(winnerUser.getFullName());
+            resp.setWinnerPhoneMasked(maskPhone(winnerUser.getPhone()));
+
+            // اگر خودِ همین کاربر برنده قبلی باشد
+            if (winnerUser.getId().equals(user.getId())) {
+                resp.setSuccess(true);
+                resp.setMessage("شما قبلاً برنده این رقابت شده‌اید. تبریک!");
             }
+
+            return resp;
         }
 
         // اگر هنوز برنده‌ای ثبت نشده → این کاربر برنده می‌شود
-        participation.setWatchedAd(true); // این فقط فلگی است، ربطی به تبلیغ واقعی ندارد
+        participation.setWatchedAd(true);        // فلگ نمایشی
         participation.setEnteredCode(code);
         participation.setEnterTime(LocalDateTime.now());
         participation.setWinner(true);
@@ -253,5 +278,13 @@ public class CompetitionService {
 
         return new CodeEntryResponse(true, "تبریک! شما برنده 10 دالر شدید.");
     }
+    
+    // حذف یک سوال
+    public void deleteQuestion(Long questionId) {
+        questionRepository.deleteById(questionId);
+    }
+
+
+
 
 }

@@ -80,16 +80,32 @@ public class UserService {
         return mapToProfileDto(user);
     }
 
-    // PUT /api/me/password
+ // PUT /api/me/password
     public void changePassword(ChangePasswordRequest request) {
         User user = getCurrentUserEntity();
 
-        if (!encoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
-            throw new IllegalArgumentException("Current password is incorrect");
+        // --- مقادیر را trim کنیم تا فاصلهٔ اضافه مشکل نسازد ---
+        String current = request.getCurrentPassword();
+        String newer   = request.getNewPassword();
+
+        if (current != null) current = current.trim();
+        if (newer != null)   newer   = newer.trim();
+
+        System.out.println(">>> currentPassword = [" + current + "], len=" + (current != null ? current.length() : -1));
+        System.out.println(">>> newPassword     = [" + newer   + "], len=" + (newer   != null ? newer.length()   : -1));
+        System.out.println(">>> hash from DB    = [" + user.getPasswordHash() + "]");
+        System.out.println(">>> matches? " + encoder.matches(current, user.getPasswordHash()));
+
+        if (!encoder.matches(current, user.getPasswordHash())) {
+            throw new IllegalArgumentException("رمز فعلی اشتباه است.");
         }
 
-        String encoded = encoder.encode(request.getNewPassword());
+        String encoded = encoder.encode(newer);
         user.setPasswordHash(encoded);
         userRepository.save(user);
     }
+
+
+
+
 }
