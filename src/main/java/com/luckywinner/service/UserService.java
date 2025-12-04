@@ -1,27 +1,37 @@
 package com.luckywinner.service;
 
+import java.time.LocalDateTime;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.luckywinner.dto.ChangePasswordRequest;
 import com.luckywinner.dto.UpdateProfileRequest;
 import com.luckywinner.dto.UserProfileResponse;
 import com.luckywinner.entity.User;
+import com.luckywinner.repository.CompetitionParticipationRepository;
 import com.luckywinner.repository.UserRepository;
-
-import java.time.LocalDateTime;
+import com.luckywinner.repository.WalletTransactionRepository;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder encoder;
+    private final CompetitionParticipationRepository participationRepository;
+    private final WalletTransactionRepository walletTransactionRepository;
 
-    public UserService(UserRepository userRepository, BCryptPasswordEncoder encoder) {
+    public UserService(UserRepository userRepository,
+                       BCryptPasswordEncoder encoder,
+                       CompetitionParticipationRepository participationRepository,
+                       WalletTransactionRepository walletTransactionRepository) {
         this.userRepository = userRepository;
         this.encoder = encoder;
+        this.participationRepository = participationRepository;
+        this.walletTransactionRepository = walletTransactionRepository;
     }
 
     // گرفتن کاربر لاگین شده از SecurityContext
@@ -29,14 +39,19 @@ public class UserService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         if (auth == null || !auth.isAuthenticated()) {
-            throw new RuntimeException("No authenticated user");
+            throw new RuntimeException("هیچ کاربر لاگین‌شده‌ای یافت نشد.");
         }
 
         String phone = auth.getName(); // در JWT: subject = phone
         User user = userRepository.findByPhone(phone);
 
         if (user == null) {
-            throw new RuntimeException("User not found");
+            throw new RuntimeException("کاربر یافت نشد.");
+        }
+
+        // اگر ادمین او را بلاک کرده باشد، اجازه ادامه نمی‌دهیم
+        if (user.isBlocked()) {
+            throw new RuntimeException("حساب شما توسط ادمین مسدود شده است.");
         }
 
         // هر بار که کاربر درخواست می‌دهد، lastActiveAt را آپدیت می‌کنیم
@@ -46,7 +61,7 @@ public class UserService {
         return user;
     }
 
- // تبدیل Entity به DTO
+    // تبدیل Entity به DTO
     private UserProfileResponse mapToProfileDto(User user) {
         return new UserProfileResponse(
                 user.getId(),
@@ -60,8 +75,6 @@ public class UserService {
         );
     }
 
-
-
     // GET /api/me
     public UserProfileResponse getMyProfile() {
         User user = getCurrentUserEntity();
@@ -73,14 +86,14 @@ public class UserService {
         User user = getCurrentUserEntity();
 
         if (request.getFullName() != null && !request.getFullName().isBlank()) {
-            user.setFullName(request.getFullName());
+            user.setFullName(request.getFullName().trim());
         }
 
         userRepository.save(user);
         return mapToProfileDto(user);
     }
 
- // PUT /api/me/password
+    // PUT /api/me/password
     public void changePassword(ChangePasswordRequest request) {
         User user = getCurrentUserEntity();
 
@@ -105,7 +118,28 @@ public class UserService {
         userRepository.save(user);
     }
 
+    // -------------------------
+    // متدهای مدیریتی برای ادمین
+    // -------------------------
 
+    // بلاک / آن‌بلاک کردن کاربر
+    @Transactional
+    public void setUserBlocked(Long userId, boolean blocked) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("کاربر یافت نشد."));
 
+        user.setBlocked(blocked);
+        userRepository.save(user);
+    }
 
+    // حذف کامل کاربر + پاک کردن وابستگی‌ها
+    @Transactional
+    public void deleteUser(Long userId) {
+        // اول مشارکت‌ها و تراکنش‌های وابسته را پاک می‌کنیم
+        participationRepository.deleteByUserId(userId);
+        walletTransactionRepository.deleteByUserId(userId);
+
+        // بعد خود کاربر
+        userRepository.deleteById(userId);
+    }
 }

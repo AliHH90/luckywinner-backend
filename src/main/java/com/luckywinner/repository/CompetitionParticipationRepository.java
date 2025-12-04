@@ -19,6 +19,9 @@ public interface CompetitionParticipationRepository extends JpaRepository<Compet
     
     void deleteByCompetitionId(Long competitionId);
     
+    // اضافه شد: حذف تمام مشارکت‌های یک کاربر
+    void deleteByUserId(Long userId);
+    
     // آیا کاربر برای این مسابقه قبلاً شرکت کرده است؟
     boolean existsByUserAndCompetition(User user, Competition competition);
 

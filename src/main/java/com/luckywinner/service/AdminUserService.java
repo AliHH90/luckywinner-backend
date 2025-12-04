@@ -1,3 +1,4 @@
+// src/main/java/com/luckywinner/service/AdminUserService.java
 package com.luckywinner.service;
 
 import java.util.List;
@@ -13,9 +14,12 @@ import com.luckywinner.repository.UserRepository;
 public class AdminUserService {
 
     private final UserRepository userRepository;
+    private final UserService userService; // 👈 اضافه شد
 
-    public AdminUserService(UserRepository userRepository) {
+    public AdminUserService(UserRepository userRepository,
+                            UserService userService) { // 👈 سازنده اصلاح شد
         this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     // لیست همه کاربران برای پنل ادمین
@@ -27,19 +31,27 @@ public class AdminUserService {
     }
 
     private AdminUserResponse toDto(User u) {
-
-        // چون role در User از نوع String است:
-        String roleName = u.getRole();   // ✅ فقط همین
+        String roleName = u.getRole();  // "ADMIN" یا "USER"
 
         return new AdminUserResponse(
                 u.getId(),
                 u.getPhone(),
                 u.getFullName(),
-                u.getBalance(),       // اگر این فیلد در User نداری، این خط و پارامترش را از DTO حذف کن
-                u.getTotalWon(),      // همین‌طور این
+                u.getBalance(),
+                u.getTotalWon(),
                 roleName,
-                u.getCreatedAt(),     // اگر نداری → null بگذار یا حذفش کن
-                u.getLastActiveAt()   // اگر نداری → null بگذار یا حذفش کن
+                u.getCreatedAt(),
+                u.getLastActiveAt()
         );
+    }
+
+    // ✅ بلاک / آن‌بلاک کردن کاربر (می‌فرستیم به UserService)
+    public void setUserBlocked(Long userId, boolean blocked) {
+        userService.setUserBlocked(userId, blocked);
+    }
+
+    // ✅ حذف کاربر (با پاک کردن participationها و تراکنش‌ها)
+    public void deleteUser(Long userId) {
+        userService.deleteUser(userId);
     }
 }

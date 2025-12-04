@@ -44,7 +44,21 @@ public class User {
     @Column(nullable = false)
     private java.time.LocalDateTime createdAt;     // تاریخ ثبت‌نام کاربر
    
+	 // داخل کلاس User
+	
+	 // اضافه شد: آیا کاربر بلاک است؟
+	 @Column(nullable = false)
+	 private boolean blocked = false;
+	
+	 public boolean isBlocked() {
+	     return blocked;
+	 }
+	
+	 public void setBlocked(boolean blocked) {
+	     this.blocked = blocked;
+	 }
 
+    
     // سازنده خالی (اجباری برای JPA)
     public User() {
     }

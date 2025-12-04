@@ -14,6 +14,9 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
     @Query("select coalesce(sum(w.amount), 0) from WalletTransaction w where w.type = :type")
     double sumAmountByType(@Param("type") String type);
     
+    // اضافه شد: حذف تمام تراکنش‌های یک کاربر
+    void deleteByUserId(Long userId);
+    
     // ✅ لیست تراکنش‌های یک کاربر (جدیدترین اول)
     List<WalletTransaction> findTop30ByUserOrderByCreatedAtDesc(User user);
 }
